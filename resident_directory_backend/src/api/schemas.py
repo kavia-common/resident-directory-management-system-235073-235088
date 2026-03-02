@@ -18,6 +18,12 @@ class LoginRequest(BaseModel):
     password: str = Field(..., description="User password.")
 
 
+class SignupRequest(BaseModel):
+    email: str = Field(..., description="User email (must be unique).")
+    password: str = Field(..., description="User password (will be hashed).")
+    display_name: Optional[str] = Field(default=None, description="Optional display name.")
+
+
 class ResidentPrivacyPreferencesOut(BaseModel):
     hide_email: bool = Field(..., description="If true, email is hidden from non-admin directory/profile views.")
     hide_phone: bool = Field(..., description="If true, phone is hidden from non-admin directory/profile views.")
