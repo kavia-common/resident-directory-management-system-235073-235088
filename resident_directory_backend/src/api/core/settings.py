@@ -17,6 +17,12 @@ class Settings(BaseSettings):
         browsers will reject wildcard origins (`*`). Therefore we default to a safe
         localhost origin and allow override via env vars.
 
+    IMPORTANT:
+        This repository historically used `ALLOWED_ORIGINS` / `FRONTEND_URL` in `.env`.
+        The FastAPI settings prefer `CORS_ALLOW_ORIGINS`, but we keep backward compatible
+        aliases so deploys don't silently fall back to localhost-only CORS (which shows up
+        in the browser as "Failed to fetch").
+
     Security note:
         `JWT_SECRET` is required in production. For local development / sandbox integration only,
         you may set `ALLOW_INSECURE_DEV_JWT=1` to permit a fixed fallback secret.
@@ -28,6 +34,8 @@ class Settings(BaseSettings):
     cors_allow_origins: List[str] = Field(
         default=["http://localhost:3000"],
         description="Allowed CORS origins. Do not use '*' when allow_credentials is enabled.",
+        # Backward compatible alias: the backend .env currently uses `ALLOWED_ORIGINS`.
+        validation_alias="ALLOWED_ORIGINS",
     )
 
     # Convenience single-origin env var used by some deployments; if set, it will be merged into cors_allow_origins.
@@ -35,6 +43,13 @@ class Settings(BaseSettings):
         default=None,
         description="Optional single frontend origin to add to CORS allowlist.",
         validation_alias="CORS_FRONTEND_ORIGIN",
+    )
+
+    # Backward compatible single-origin env var: used widely in this repo's .env.
+    frontend_url: Optional[str] = Field(
+        default=None,
+        description="Optional single frontend origin (alias for FRONTEND_URL) to add to CORS allowlist.",
+        validation_alias="FRONTEND_URL",
     )
 
     postgres_url: Optional[str] = Field(default=None, description="Full Postgres connection URL.")
@@ -58,6 +73,12 @@ class Settings(BaseSettings):
         # Merge convenience origin into allowlist (if provided).
         if self.cors_frontend_origin:
             origin = self.cors_frontend_origin.strip()
+            if origin and origin not in self.cors_allow_origins:
+                self.cors_allow_origins.append(origin)
+
+        # Backward compatible merge: also accept FRONTEND_URL as a single origin.
+        if self.frontend_url:
+            origin = self.frontend_url.strip()
             if origin and origin not in self.cors_allow_origins:
                 self.cors_allow_origins.append(origin)
 
