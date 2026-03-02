@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
 
@@ -370,8 +370,12 @@ def admin_delete_resident(
     request: Request,
     db: Session = Depends(get_db),
     admin_user: User = Depends(require_roles(["admin"])),
-) -> None:
-    """Admin-only delete resident."""
+) -> Response:
+    """Admin-only delete resident.
+
+    Notes:
+        FastAPI disallows response bodies for HTTP 204. Return an explicit empty Response.
+    """
     resident = db.query(Resident).filter(Resident.id == resident_id).one_or_none()
     if resident is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resident not found")
@@ -387,4 +391,4 @@ def admin_delete_resident(
         entity_id=str(resident_id),
         details={},
     )
-    return None
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
